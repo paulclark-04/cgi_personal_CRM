@@ -9,7 +9,7 @@
 
 ## Le Problème
 
-Les consultants (surtout juniors) possèdent un réseau professionnel riche — alumni, anciens collègues, clients — mais ne l'exploitent pas efficacement :
+Les consultants possèdent un réseau professionnel riche — alumni, anciens collègues, clients — mais ne l'exploitent pas efficacement :
 
 - **85%** des opportunités business viennent du réseau
 - **70%** des offres ne sont jamais publiées (marché caché)
