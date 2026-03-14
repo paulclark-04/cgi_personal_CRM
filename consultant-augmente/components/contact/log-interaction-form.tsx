@@ -27,29 +27,45 @@ export function LogInteractionForm({ contactId, onAdd, onStatusChange }: LogInte
   const [note, setNote] = useState("");
   const [outcome, setOutcome] = useState<InteractionOutcome>("sent");
   const [success, setSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
-    if (!note.trim()) return;
+  const handleSubmit = async () => {
+    if (!note.trim() || submitting) return;
 
-    const newInteraction: Interaction = {
-      id: `int-${Date.now()}`,
-      contactId,
-      type,
-      note: note.trim(),
-      outcome,
-      timestamp: new Date().toISOString(),
-    };
+    setSubmitting(true);
 
-    onAdd(newInteraction);
-    onStatusChange?.();
+    try {
+      const res = await fetch(`/api/contacts/${contactId}/interactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          note: note.trim(),
+          outcome,
+        }),
+      });
 
-    setSuccess(true);
-    toast.success("Interaction enregistrée");
+      if (!res.ok) {
+        throw new Error("Failed to create interaction");
+      }
 
-    setTimeout(() => {
-      setSuccess(false);
-      setNote("");
-    }, 1500);
+      const newInteraction: Interaction = await res.json();
+
+      onAdd(newInteraction);
+      onStatusChange?.();
+
+      setSuccess(true);
+      toast.success("Interaction enregistrée");
+
+      setTimeout(() => {
+        setSuccess(false);
+        setNote("");
+      }, 1500);
+    } catch {
+      toast.error("Erreur lors de l'enregistrement de l'interaction");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -112,7 +128,7 @@ export function LogInteractionForm({ contactId, onAdd, onStatusChange }: LogInte
 
         <Button
           onClick={handleSubmit}
-          disabled={!note.trim() || success}
+          disabled={!note.trim() || success || submitting}
           className={`w-full gap-2 ${success ? "bg-green-600" : "bg-rose-600 hover:bg-rose-700"}`}
         >
           {success ? (
@@ -120,6 +136,8 @@ export function LogInteractionForm({ contactId, onAdd, onStatusChange }: LogInte
               <Check className="w-4 h-4" />
               Enregistré !
             </>
+          ) : submitting ? (
+            "Enregistrement..."
           ) : (
             "Enregistrer"
           )}

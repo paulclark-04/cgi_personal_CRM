@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Contact {
+  id                String        @id @default(cuid())
+  firstName         String
+  lastName          String
+  name              String
+  title             String
+  company           String
+  sector            String
+  linkedinUrl       String
+  email             String?
+  avatarUrl         String?
+  relationshipType  String
+  tags              String        // JSON-encoded string array
+  status            String        @default("new")
+  relationshipScore Int           @default(50)
+  lastInteractionAt DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  interactions      Interaction[]
+}
+
+model Interaction {
+  id        String   @id @default(cuid())
+  contactId String
+  type      String
+  note      String
+  outcome   String
+  timestamp DateTime @default(now())
+
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([contactId])
+}
