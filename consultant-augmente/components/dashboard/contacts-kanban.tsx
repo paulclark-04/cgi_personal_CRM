@@ -56,14 +56,41 @@ export function ContactsKanban({ contacts }: ContactsKanbanProps) {
     setDragOverColumn(null);
   };
 
-  const handleDrop = (e: React.DragEvent, newStatus: ContactStatus) => {
+  const handleDrop = async (e: React.DragEvent, newStatus: ContactStatus) => {
     e.preventDefault();
     const contactId = e.dataTransfer.getData("text/plain");
     const contact = resolvedContacts.find((c) => c.id === contactId);
 
     if (contact && contact.status !== newStatus) {
+      const previousStatus = contact.status;
+
+      // Optimistic update
       setStatusOverrides((prev) => ({ ...prev, [contactId]: newStatus }));
       toast.success(`${contact.name} déplacé vers "${STATUS_LABELS[newStatus]}"`);
+
+      try {
+        const res = await fetch(`/api/contacts/${contactId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to update status");
+        }
+      } catch {
+        // Revert on error
+        setStatusOverrides((prev) => {
+          const next = { ...prev };
+          if (previousStatus === contacts.find((c) => c.id === contactId)?.status) {
+            delete next[contactId];
+          } else {
+            next[contactId] = previousStatus;
+          }
+          return next;
+        });
+        toast.error(`Erreur lors de la mise à jour du statut de ${contact.name}`);
+      }
     }
 
     setDraggedId(null);

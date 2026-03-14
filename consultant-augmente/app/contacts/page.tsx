@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/header";
 import { ContactsTable } from "@/components/dashboard/contacts-table";
 import { ImportCsvDialog } from "@/components/dashboard/import-csv-dialog";
 import { CaptureLinkedinDialog } from "@/components/dashboard/capture-linkedin-dialog";
-import { mockContacts } from "@/lib/mock-data/contacts";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -15,14 +14,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { STATUS_LABELS, SECTORS } from "@/lib/constants";
-import type { ContactStatus } from "@/lib/types";
+import type { Contact, ContactStatus } from "@/lib/types";
 
 export default function ContactsPage() {
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<ContactStatus | "all">("all");
   const [sectorFilter, setSectorFilter] = useState("Tous");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredContacts = mockContacts.filter((c) => {
+  useEffect(() => {
+    fetch("/api/contacts")
+      .then((res) => res.json())
+      .then((data) => setContacts(data))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filteredContacts = contacts.filter((c) => {
     if (statusFilter !== "all" && c.status !== statusFilter) return false;
     if (sectorFilter !== "Tous" && c.sector !== sectorFilter) return false;
     if (searchQuery) {
@@ -55,46 +63,57 @@ export default function ContactsPage() {
           </p>
         </div>
 
-        {/* Filters & Actions */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2 flex-wrap">
-            {statusOptions.map((opt) => (
-              <Button
-                key={opt.value}
-                variant={statusFilter === opt.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter(opt.value)}
-                className={
-                  statusFilter === opt.value
-                    ? "bg-rose-600 hover:bg-rose-700"
-                    : ""
-                }
-              >
-                {opt.label}
-              </Button>
+        {loading ? (
+          <div className="space-y-4">
+            <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-16 bg-gray-100 rounded-lg animate-pulse" />
             ))}
-
-            <Select value={sectorFilter} onValueChange={(v) => { if (v) setSectorFilter(v); }}>
-              <SelectTrigger className="w-[180px] h-9 text-sm">
-                <SelectValue placeholder="Secteur" />
-              </SelectTrigger>
-              <SelectContent>
-                {SECTORS.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
+          </div>
+        ) : (
+          <>
+            {/* Filters & Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                {statusOptions.map((opt) => (
+                  <Button
+                    key={opt.value}
+                    variant={statusFilter === opt.value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setStatusFilter(opt.value)}
+                    className={
+                      statusFilter === opt.value
+                        ? "bg-rose-600 hover:bg-rose-700"
+                        : ""
+                    }
+                  >
+                    {opt.label}
+                  </Button>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <ImportCsvDialog />
-            <CaptureLinkedinDialog />
-          </div>
-        </div>
+                <Select value={sectorFilter} onValueChange={(v) => { if (v) setSectorFilter(v); }}>
+                  <SelectTrigger className="w-[180px] h-9 text-sm">
+                    <SelectValue placeholder="Secteur" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SECTORS.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-        <ContactsTable contacts={filteredContacts} />
+              <div className="flex items-center gap-2">
+                <ImportCsvDialog contacts={contacts} />
+                <CaptureLinkedinDialog />
+              </div>
+            </div>
+
+            <ContactsTable contacts={filteredContacts} />
+          </>
+        )}
       </div>
     </div>
   );

@@ -82,4 +82,10 @@ export const SECTORS = [
   "HealthTech",
   "Luxe / Cosmétiques",
   "Transport / Mobilité",
-];
+  "Énergie",
+  "Immobilier",
+  "Autre",
+] as const;
+
+/** Sectors usable for enrichment (excludes "Tous" filter option) */
+export const ENRICHMENT_SECTORS = SECTORS.filter((s) => s !== "Tous");

@@ -11,9 +11,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { mockContacts } from "@/lib/mock-data/contacts";
+import type { Contact } from "@/lib/types";
 
-export function ImportCsvDialog() {
+interface ImportCsvDialogProps {
+  contacts?: Contact[];
+}
+
+export function ImportCsvDialog({ contacts = [] }: ImportCsvDialogProps) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"upload" | "progress" | "done">("upload");
   const [progress, setProgress] = useState(0);
@@ -112,7 +116,7 @@ export function ImportCsvDialog() {
                   </tr>
                 </thead>
                 <tbody>
-                  {mockContacts.slice(0, 6).map((c) => (
+                  {contacts.slice(0, 6).map((c) => (
                     <tr key={c.id} className="border-t">
                       <td className="px-3 py-2 text-gray-900">{c.name}</td>
                       <td className="px-3 py-2 text-gray-600">{c.company}</td>

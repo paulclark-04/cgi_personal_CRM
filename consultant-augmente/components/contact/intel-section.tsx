@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { RefreshCw, ExternalLink, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,23 +12,37 @@ import { INTEL_TYPE_ICONS } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
 
 interface IntelSectionProps {
-  intelItems: IntelItem[];
+  contactId: string;
   engagement: GeneratedEngagement | undefined;
   company: string;
 }
 
-export function IntelSection({ intelItems, engagement, company }: IntelSectionProps) {
-  const [loading, setLoading] = useState(false);
-  const [showItems, setShowItems] = useState(true);
+export function IntelSection({ contactId, engagement, company }: IntelSectionProps) {
+  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<IntelItem[]>([]);
 
-  const handleRefresh = () => {
+  const fetchIntel = useCallback(async () => {
     setLoading(true);
-    setShowItems(false);
-    setTimeout(() => {
-      setShowItems(true);
+    try {
+      const response = await fetch("/api/intel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contactId }),
+      });
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setItems(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch intel:", error);
+    } finally {
       setLoading(false);
-    }, 2000);
-  };
+    }
+  }, [contactId]);
+
+  useEffect(() => {
+    fetchIntel();
+  }, [fetchIntel]);
 
   return (
     <div className="space-y-6">
@@ -41,7 +55,7 @@ export function IntelSection({ intelItems, engagement, company }: IntelSectionPr
           <Button
             variant="outline"
             size="sm"
-            onClick={handleRefresh}
+            onClick={fetchIntel}
             disabled={loading}
             className="gap-2"
           >
@@ -50,7 +64,7 @@ export function IntelSection({ intelItems, engagement, company }: IntelSectionPr
           </Button>
         </div>
 
-        {loading || !showItems ? (
+        {loading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <Card key={i} className="p-4 border border-gray-200">
@@ -61,9 +75,15 @@ export function IntelSection({ intelItems, engagement, company }: IntelSectionPr
               </Card>
             ))}
           </div>
+        ) : items.length === 0 ? (
+          <Card className="p-6 border border-gray-200 text-center">
+            <p className="text-sm text-gray-500">
+              Aucune actualité trouvée pour {company}.
+            </p>
+          </Card>
         ) : (
           <div className="space-y-3">
-            {intelItems.map((item) => (
+            {items.map((item) => (
               <Card
                 key={item.id}
                 className="p-4 border border-gray-200 hover:shadow-md transition-shadow"

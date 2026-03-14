@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, useEffect, use } from "react";
 import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { ContactHeader } from "@/components/contact/contact-header";
@@ -9,9 +9,6 @@ import { MessageGenerator } from "@/components/contact/message-generator";
 import { InteractionLog } from "@/components/contact/interaction-log";
 import { LogInteractionForm } from "@/components/contact/log-interaction-form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockContacts } from "@/lib/mock-data/contacts";
-import { mockIntelItems } from "@/lib/mock-data/intel-items";
-import { mockInteractions } from "@/lib/mock-data/interactions";
 import { mockGeneratedEngagements } from "@/lib/mock-data/generated-messages";
 import type { Interaction, Contact } from "@/lib/types";
 
@@ -21,22 +18,61 @@ export default function ContactPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const baseContact = mockContacts.find((c) => c.id === id);
+  const [contact, setContact] = useState<Contact | null>(null);
+  const [interactions, setInteractions] = useState<Interaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFoundState, setNotFoundState] = useState(false);
 
-  if (!baseContact) {
+  useEffect(() => {
+    fetch(`/api/contacts/${id}`)
+      .then((res) => {
+        if (!res.ok) {
+          setNotFoundState(true);
+          return null;
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (data) {
+          setContact(data.contact);
+          setInteractions(data.interactions ?? []);
+        }
+      })
+      .catch(() => setNotFoundState(true))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (notFoundState) {
     notFound();
   }
 
-  return <ContactPageContent contact={baseContact} />;
+  if (loading || !contact) {
+    return (
+      <div className="min-h-screen">
+        <Header />
+        <div className="p-6 max-w-4xl space-y-4">
+          <div className="h-24 bg-gray-100 rounded-xl animate-pulse" />
+          <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
+          <div className="h-64 bg-gray-100 rounded-xl animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  return <ContactPageContent contact={contact} setContact={setContact} interactions={interactions} setInteractions={setInteractions} />;
 }
 
-function ContactPageContent({ contact: initialContact }: { contact: Contact }) {
-  const [contact, setContact] = useState(initialContact);
-  const [interactions, setInteractions] = useState<Interaction[]>(
-    mockInteractions.filter((i) => i.contactId === contact.id)
-  );
-
-  const intelItems = mockIntelItems.filter((i) => i.contactId === contact.id);
+function ContactPageContent({
+  contact,
+  setContact,
+  interactions,
+  setInteractions,
+}: {
+  contact: Contact;
+  setContact: React.Dispatch<React.SetStateAction<Contact | null>>;
+  interactions: Interaction[];
+  setInteractions: React.Dispatch<React.SetStateAction<Interaction[]>>;
+}) {
   const engagement = mockGeneratedEngagements.find(
     (e) => e.contactId === contact.id
   );
@@ -45,13 +81,32 @@ function ContactPageContent({ contact: initialContact }: { contact: Contact }) {
     setInteractions((prev) => [interaction, ...prev]);
   };
 
-  const handleStatusChange = () => {
+  const handleStatusChange = async () => {
     if (contact.status === "to-relaunch") {
-      setContact((prev) => ({
-        ...prev,
-        status: "relaunched",
-        lastInteractionAt: new Date().toISOString(),
-      }));
+      const newStatus = "relaunched";
+      const newLastInteraction = new Date().toISOString();
+
+      // Optimistic update
+      setContact((prev) =>
+        prev
+          ? { ...prev, status: newStatus, lastInteractionAt: newLastInteraction }
+          : prev
+      );
+
+      try {
+        await fetch(`/api/contacts/${contact.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus, lastInteractionAt: newLastInteraction }),
+        });
+      } catch {
+        // Revert on error
+        setContact((prev) =>
+          prev
+            ? { ...prev, status: "to-relaunch", lastInteractionAt: contact.lastInteractionAt }
+            : prev
+        );
+      }
     }
   };
 
@@ -71,14 +126,14 @@ function ContactPageContent({ contact: initialContact }: { contact: Contact }) {
 
             <TabsContent value="intelligence" className="mt-4">
               <IntelSection
-                intelItems={intelItems}
+                contactId={contact.id}
                 engagement={engagement}
                 company={contact.company}
               />
             </TabsContent>
 
             <TabsContent value="messages" className="mt-4">
-              <MessageGenerator engagement={engagement} />
+              <MessageGenerator contactId={contact.id} hasIntel={true} />
             </TabsContent>
 
             <TabsContent value="historique" className="mt-4">
