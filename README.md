@@ -36,7 +36,7 @@ Un **Personal CRM augmenté à l'IA** qui combine 3 piliers :
 ## Démo — La Boucle Complète
 
 ```
-Capturer un contact → Détecter des actus pertinentes → Générer 2 messages personnalisés + 1 NBA → Logger l'interaction
+Capturer un contact → Détecter des actus pertinentes → Générer 2 messages personnalisés + 1 Next Best Action → Logger l'interaction
 ```
 
 ---
@@ -48,8 +48,8 @@ Capturer un contact → Détecter des actus pertinentes → Générer 2 messages
 - **4 KPIs** : Total contacts, À relancer, Score moyen, Interactions du mois
 - **Vue Liste** : tableau triable (par nom, score, date) avec filtres par statut et secteur
 - **Vue Kanban** : colonnes par statut (À relancer / Relancé / À jour / Nouveau) avec **drag & drop** pour changer le statut d'un contact
-- **Import CSV** : simulation d'import avec barre de progression animée
-- **Capture LinkedIn** : simulation d'extraction de profil en 3 étapes (extraction → enrichissement → ajout)
+- **Import CSV** :  Import avec barre de progression animée
+- **Capture LinkedIn** : Extraction de profil en 3 étapes (extraction → enrichissement → ajout)
 
 ### Fiche Contact (`/contacts/[id]`)
 
@@ -161,26 +161,7 @@ consultant-augmente/
 
 ---
 
-## Données Mock
-
-Le MVP fonctionne avec des **données 100% simulées** — pas d'API externes.
-
-### 12 Contacts
-
-| Nom | Entreprise | Secteur | Statut |
-|-----|-----------|---------|--------|
-| Marc Leblanc | Allianz France | Assurance | À relancer |
-| Sarah Dupont | TechCorp | Tech / SaaS | À relancer |
-| Thomas Moreau | BNP Paribas | Banque | Relancé |
-| Julie Martin | Doctolib | HealthTech | À relancer |
-| Alexandre Petit | McKinsey | Conseil | À jour |
-| Camille Roux | Société Générale | Banque | Nouveau |
-| Nicolas Bernard | DataWave | Tech / SaaS | À relancer |
-| Émilie Fournier | L'Oréal | Luxe / Cosmétiques | Relancé |
-| Pierre Leclerc | AXA France | Assurance | À relancer |
-| Laura Chen | Capgemini | Conseil | À jour |
-| Maxime Girard | Qonto | FinTech | À relancer |
-| Sophie Durand | SNCF | Transport / Mobilité | Relancé |
+## Données Fictives
 
 ### Types d'actualités
 
@@ -234,23 +215,6 @@ npm run build
 npm start
 ```
 
----
-
-## Scénario de Démo (10 min)
-
-| Durée | Étape | Action |
-|-------|-------|--------|
-| 1 min | Introduction | Ouvrir le dashboard, présenter les KPIs |
-| 2 min | Vue d'ensemble | Filtrer par "À relancer", montrer la vue Kanban |
-| 1 min | Capture contact | Cliquer "Capturer LinkedIn", montrer l'animation |
-| 2 min | Intelligence | Ouvrir Marc Leblanc, montrer les 3 actus + synthèse IA |
-| 3 min | Messages IA | Cliquer "Générer des messages", montrer les 2 tons + NBA, copier un message |
-| 1 min | Logger & Suivre | Logger une interaction, voir le statut changer |
-| 0.5 min | Veille | Montrer le flux multi-secteur, filtrer par "Banque" |
-| 0.5 min | Conclusion | "De 15 min à 30 sec par contact" |
-
----
-
 ## Ce que le MVP ne fait pas (volontairement)
 
 - Pas de vrais appels API (OpenRouter, RSS, LinkedIn)
@@ -262,8 +226,6 @@ npm start
 - Pas d'envoi réel de messages
 
 **Tout cela est prévu dans la roadmap future.**
-
----
 
 ## Roadmap Future
 
