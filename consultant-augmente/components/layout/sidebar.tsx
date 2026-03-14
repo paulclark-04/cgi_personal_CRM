@@ -19,10 +19,13 @@ export function Sidebar() {
     <aside className="hidden md:flex w-64 flex-col border-r border-gray-200 bg-white h-screen sticky top-0">
       {/* Logo */}
       <div className="p-6">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-rose-600 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">CA</span>
-          </div>
+        <Link href="/dashboard" className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/cgi-logo.png"
+            alt="CGI"
+            className="h-7 w-auto object-contain"
+          />
           <div>
             <h1 className="font-semibold text-sm text-gray-900">Consultant</h1>
             <p className="text-xs text-gray-500 -mt-0.5">Augmenté</p>
