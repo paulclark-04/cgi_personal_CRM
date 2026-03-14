@@ -26,8 +26,8 @@ Les consultants possèdent un réseau professionnel riche — alumni, anciens co
 Un **Personal CRM augmenté à l'IA** qui combine 3 piliers :
 
 1. **Network Intelligence** — segmentation, scoring, priorisation des contacts
-2. **Veille Marché & Concurrentielle** — surveillance automatisée des signaux faibles (actus, changements de poste, levées de fonds)
-3. **Assistant IA d'Engagement** — génération de messages personnalisés + Next Best Actions
+2. **Veille Marché en temps réel** — surveillance automatisée via Google News RSS (actus, changements de poste, levées de fonds)
+3. **Assistant IA d'Engagement** — génération de messages personnalisés via GPT OSS 120B + Next Best Actions
 
 **Résultat :** ce qui prenait **15 min** par contact prend maintenant **30 secondes**.
 
@@ -36,7 +36,7 @@ Un **Personal CRM augmenté à l'IA** qui combine 3 piliers :
 ## Démo — La Boucle Complète
 
 ```
-Capturer un contact → Détecter des actus pertinentes → Générer 2 messages personnalisés + 1 Next Best Action → Logger l'interaction
+Capturer un profil LinkedIn (Apify) → Enrichir via IA (secteur, tags) → Détecter des actus en temps réel (Google News) → Générer 2 messages personnalisés + 1 NBA (OpenRouter) → Logger l'interaction (SQLite)
 ```
 
 ---
@@ -47,38 +47,51 @@ Capturer un contact → Détecter des actus pertinentes → Générer 2 messages
 
 - **4 KPIs** : Total contacts, À relancer, Score moyen, Interactions du mois
 - **Vue Liste** : tableau triable (par nom, score, date) avec filtres par statut et secteur
-- **Vue Kanban** : colonnes par statut (À relancer / Relancé / À jour / Nouveau) avec **drag & drop** pour changer le statut d'un contact
-- **Import CSV** :  Import avec barre de progression animée
-- **Capture LinkedIn** : Extraction de profil en 3 étapes (extraction → enrichissement → ajout)
+- **Vue Kanban** : colonnes par statut (À relancer / Relancé / À jour / Nouveau) avec **drag & drop** pour changer le statut d'un contact — **persisté en base de données**
+- **Import CSV** : import avec barre de progression animée
+- **Capture LinkedIn** : extraction réelle de profil via **Apify** en 3 étapes (scraping → enrichissement IA → ajout en DB)
 
 ### Fiche Contact (`/contacts/[id]`)
 
 C'est le coeur de l'application — 3 onglets :
 
 **Onglet Intelligence :**
-- Actualités récentes de l'entreprise du contact (3-4 par contact)
-- Types d'actus : news, changement de poste, levée de fonds, partenariat, lancement produit
+- Actualités **en temps réel** de l'entreprise du contact via Google News RSS
+- Types d'actus détectés automatiquement : news, changement de poste, levée de fonds, partenariat, lancement produit
 - Score de pertinence pour chaque actu
 - Synthèse IA avec key insights et angles de conversation suggérés
-- Bouton "Rafraîchir" avec animation de chargement
+- Bouton "Rafraîchir" pour re-fetcher les dernières actus
 
 **Onglet Messages :**
-- Bouton "Générer des messages" avec animation en 4 phases (loading → analyse → génération → affichage)
+- Bouton "Générer des messages" — appel **réel** à GPT OSS 120B via OpenRouter
+- L'IA utilise les **vraies actualités** Google News du contact pour personnaliser les messages
 - 2 messages personnalisés générés : un ton **professionnel** et un ton **amical**
 - Chaque message est copiable (clipboard) et modifiable (édition inline)
-- **Next Best Action** (NBA) : action concrète recommandée (ex: "Liker le post LinkedIn...")
+- **Next Best Action** (NBA) : action concrète recommandée
 - Rationale "Pourquoi maintenant ?" avec sources
 
 **Onglet Historique :**
 - Timeline verticale des interactions passées (messages, calls, meetings, likes...)
-- Formulaire pour logger une nouvelle interaction (type, note, résultat)
+- Formulaire pour logger une nouvelle interaction (type, note, résultat) — **persisté en DB**
 - Le statut du contact se met à jour automatiquement (ex: "À relancer" → "Relancé")
 
 ### Veille Marché (`/veille`)
 
-- **Filtres secteur** : Assurance, Banque, Tech/SaaS, FinTech, Conseil, HealthTech, Luxe, Transport
-- **Flux d'actualités** : toutes les actus agrégées, triées par date, avec le contact lié
-- **Tendances Marché** : 8 tendances transversales avec niveau d'impact et entreprises concernées
+- **Filtres secteur** : Assurance, Banque, Tech/SaaS, FinTech, Conseil, HealthTech, Luxe, Transport, Énergie, Immobilier
+- **Graphiques** : distribution par type d'actu, volume par secteur, timeline d'activité
+- **Flux d'actualités en temps réel** : toutes les actus Google News agrégées pour les entreprises du réseau
+- **Tendances Marché** : tendances transversales avec niveau d'impact et entreprises concernées
+
+---
+
+## Intégrations & APIs
+
+| Service | Usage | Clé requise |
+|---------|-------|-------------|
+| **OpenRouter** (GPT OSS 120B free) | Génération de messages personnalisés + enrichissement secteur/tags | `OPENROUTER_API_KEY` |
+| **Google News RSS** | Veille marché en temps réel (actualités par entreprise) | Aucune (gratuit, illimité) |
+| **Apify** (LinkedIn Profile Scraper) | Capture de profils LinkedIn (nom, poste, entreprise, photo) | `APIFY_API_KEY` |
+| **SQLite** (Prisma ORM) | Persistance des contacts, interactions, statuts | Aucune (local) |
 
 ---
 
@@ -90,10 +103,12 @@ C'est le coeur de l'application — 3 onglets :
 | **TypeScript** | Typage strict |
 | **Tailwind CSS v4** | Styling utilitaire |
 | **shadcn/ui** (base-ui) | Composants UI |
+| **Prisma** + **SQLite** | ORM + base de données locale |
 | **Lucide React** | Icônes |
 | **Framer Motion** | Animations |
-| **Recharts** | Graphiques (prêt pour extension) |
+| **Recharts** | Graphiques |
 | **Sonner** | Notifications toast |
+| **fast-xml-parser** | Parsing des flux RSS Google News |
 
 ---
 
@@ -113,11 +128,19 @@ consultant-augmente/
 │   │       └── page.tsx              # Fiche contact détaillée
 │   ├── veille/
 │   │   └── page.tsx                  # Vue veille marché
-│   └── api/                          # API Routes (mock)
-│       ├── contacts/route.ts         # GET /api/contacts
-│       ├── contacts/[id]/route.ts    # GET /api/contacts/:id
-│       ├── intel/route.ts            # POST /api/intel/fetch
-│       └── ai/generate/route.ts      # POST /api/ai/generate
+│   └── api/
+│       ├── contacts/
+│       │   ├── route.ts              # GET (liste) + POST (création)
+│       │   └── [id]/
+│       │       ├── route.ts          # GET + PATCH + DELETE contact
+│       │       └── interactions/
+│       │           └── route.ts      # POST interaction (persiste en DB)
+│       ├── intel/route.ts            # POST — actus temps réel (Google News RSS)
+│       ├── veille/route.ts           # GET — actus multi-entreprises par secteur
+│       ├── ai/generate/route.ts      # POST — génération messages IA (OpenRouter)
+│       └── linkedin/
+│           ├── capture/route.ts      # POST — scraping profil LinkedIn (Apify)
+│           └── enrich/route.ts       # POST — enrichissement secteur/tags (IA)
 │
 ├── components/
 │   ├── layout/
@@ -125,21 +148,22 @@ consultant-augmente/
 │   │   └── header.tsx                # Barre de recherche + user
 │   ├── dashboard/
 │   │   ├── contacts-table.tsx        # Tableau contacts triable
-│   │   ├── contacts-kanban.tsx       # Vue Kanban drag & drop
+│   │   ├── contacts-kanban.tsx       # Vue Kanban drag & drop (persiste statuts)
 │   │   ├── stats-cards.tsx           # 4 cartes KPI
-│   │   ├── import-csv-dialog.tsx     # Dialog import CSV simulé
-│   │   └── capture-linkedin-dialog.tsx # Dialog capture LinkedIn simulée
+│   │   ├── import-csv-dialog.tsx     # Dialog import CSV
+│   │   └── capture-linkedin-dialog.tsx # Dialog capture LinkedIn (Apify + IA)
 │   ├── contact/
 │   │   ├── contact-header.tsx        # En-tête fiche (nom, score, tags)
-│   │   ├── intel-section.tsx         # Onglet Intelligence (actus + synthèse)
-│   │   ├── message-generator.tsx     # Onglet Messages (génération IA)
+│   │   ├── intel-section.tsx         # Onglet Intelligence (actus temps réel)
+│   │   ├── message-generator.tsx     # Onglet Messages (génération IA réelle)
 │   │   ├── message-card.tsx          # Carte message (copie + édition)
 │   │   ├── nba-card.tsx              # Carte Next Best Action
 │   │   ├── interaction-log.tsx       # Timeline interactions
-│   │   └── log-interaction-form.tsx  # Formulaire log interaction
+│   │   └── log-interaction-form.tsx  # Formulaire log interaction (persiste en DB)
 │   ├── veille/
 │   │   ├── news-feed.tsx             # Flux d'actualités
 │   │   ├── news-card.tsx             # Carte actualité
+│   │   ├── veille-charts.tsx         # Graphiques veille (3 charts Recharts)
 │   │   ├── market-trends.tsx         # Tendances marché
 │   │   └── sector-filter.tsx         # Filtres secteur
 │   └── ui/                           # Composants shadcn/ui
@@ -147,38 +171,26 @@ consultant-augmente/
 ├── lib/
 │   ├── types.ts                      # Types TypeScript
 │   ├── utils.ts                      # Utilitaires (formatDate, getInitials...)
-│   ├── constants.ts                  # Labels, couleurs, icônes
-│   └── mock-data/
-│       ├── contacts.ts               # 12 contacts fictifs
-│       ├── intel-items.ts            # 21 actualités mock
-│       ├── interactions.ts           # 16 interactions historiques
-│       ├── generated-messages.ts     # 7 engagements pré-générés
+│   ├── constants.ts                  # Labels, couleurs, icônes, secteurs
+│   ├── db.ts                         # Singleton Prisma client
+│   ├── db-helpers.ts                 # Helpers DB → TypeScript conversion
+│   ├── ai-prompt.ts                  # System prompt pour la génération IA
+│   ├── news-fetcher.ts              # Fetcher Google News RSS + parsing XML
+│   └── mock-data/                    # Données initiales (utilisées pour le seed)
+│       ├── contacts.ts               # 12 contacts
+│       ├── intel-items.ts            # 21 actualités (fallback)
+│       ├── interactions.ts           # 16 interactions
+│       ├── generated-messages.ts     # 7 engagements pré-générés (fallback)
 │       └── market-trends.ts          # 8 tendances marché
+│
+├── prisma/
+│   ├── schema.prisma                 # Schéma DB (Contact + Interaction)
+│   ├── seed.ts                       # Script de seed (12 contacts + 16 interactions)
+│   └── migrations/                   # Migrations SQLite
 │
 └── public/
     └── cgi-logo.png                  # Logo CGI
 ```
-
----
-
-## Données Fictives
-
-### Types d'actualités
-
-- **News** : articles de presse (Les Échos, TechCrunch, Forbes...)
-- **Job Change** : promotions, changements de poste
-- **Funding** : levées de fonds (Série A, C...)
-- **Partnership** : partenariats stratégiques
-- **Product Launch** : lancements de produits
-
-### Messages IA pré-générés
-
-Pour 7 contacts, l'app génère :
-- 1 message ton **professionnel**
-- 1 message ton **amical**
-- 1 **Next Best Action**
-- 1 explication "Pourquoi maintenant ?"
-- Des angles de conversation
 
 ---
 
@@ -200,6 +212,36 @@ cd cgi_personal_CRM/consultant-augmente
 npm install
 ```
 
+### Configuration
+
+Créer un fichier `.env.local` à la racine de `consultant-augmente/` :
+
+```env
+# Base de données SQLite (obligatoire)
+DATABASE_URL="file:./dev.db"
+
+# OpenRouter — génération de messages IA (obligatoire pour la génération)
+OPENROUTER_API_KEY=votre_clé_openrouter
+
+# Apify — capture de profils LinkedIn (obligatoire pour la capture LinkedIn)
+APIFY_API_KEY=votre_clé_apify
+```
+
+Créer aussi un fichier `.env` :
+
+```env
+DATABASE_URL="file:./dev.db"
+```
+
+### Initialiser la base de données
+
+```bash
+# Créer la DB SQLite et la populer avec les données initiales
+npx prisma migrate dev --name init
+```
+
+Cela crée automatiquement la base de données SQLite et la peuple avec 12 contacts et 16 interactions.
+
 ### Lancement
 
 ```bash
@@ -215,26 +257,35 @@ npm run build
 npm start
 ```
 
+---
+
+## Ce qui fonctionne (en vrai)
+
+- **Génération de messages IA** — GPT OSS 120B via OpenRouter, basée sur les vraies actualités du contact
+- **Veille marché en temps réel** — Google News RSS, actualités fraîches pour chaque entreprise
+- **Capture LinkedIn** — Apify scrape le profil réel, l'IA enrichit le secteur et les tags
+- **Persistance complète** — SQLite via Prisma, les données survivent au refresh
+- **Drag & drop Kanban** — les changements de statut sont persistés en DB
+- **Interactions** — chaque interaction loggée est sauvegardée en DB
+
 ## Ce que le MVP ne fait pas (volontairement)
 
-- Pas de vrais appels API (OpenRouter, RSS, LinkedIn)
-- Pas de base de données (tout en mock JSON)
 - Pas d'authentification
-- Pas de vraie extension Chrome
-- Pas de scoring calculé dynamiquement
-- Pas de persistence serveur (refresh = reset)
-- Pas d'envoi réel de messages
+- Pas de scoring calculé dynamiquement (score statique)
+- Pas d'envoi réel de messages (copier-coller)
+- Pas d'import CSV réel (simulation UI)
+- Pas de notifications / rappels automatiques
 
-**Tout cela est prévu dans la roadmap future.**
+---
 
 ## Roadmap Future
 
-- **Phase 1** : Intégration OpenRouter pour la génération IA réelle
-- **Phase 2** : Connexion RSS/API pour la veille automatisée
-- **Phase 3** : Extension Chrome pour la capture LinkedIn
-- **Phase 4** : Base de données (PostgreSQL) + authentification
-- **Phase 5** : Scoring relationnel dynamique basé sur les interactions
-- **Phase 6** : Notifications et rappels automatiques
+- **Phase 1** : Scoring relationnel dynamique basé sur les interactions et la fréquence
+- **Phase 2** : Import CSV réel pour ajout de contacts en masse
+- **Phase 3** : Notifications et rappels automatiques de relance
+- **Phase 4** : Migration PostgreSQL pour déploiement cloud
+- **Phase 5** : Authentification et multi-utilisateurs
+- **Phase 6** : Extension Chrome pour capture LinkedIn directe depuis le navigateur
 - **Phase 7** : Multi-tenant pour déploiement en marque blanche chez CGI
 
 ---
